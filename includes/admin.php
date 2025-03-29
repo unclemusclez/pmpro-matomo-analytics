@@ -15,42 +15,45 @@ function pmpro_matomo_settings_page() {
         wp_die( __( 'You do not have sufficient permissions to access this page.', 'pmpro-matomo' ) );
     }
 
-    if ( isset( $_POST['pmpro_matomo_save'] ) && check_admin_referer( 'pmpro_matomo_save_settings' ) ) {
-        update_option( 'pmpro_matomo_enable_tracking', sanitize_text_field( $_POST['enable_tracking'] ) );
-        update_option( 'pmpro_matomo_site_id', sanitize_text_field( $_POST['site_id'] ) );
-        update_option( 'pmpro_matomo_tracker_url', esc_url_raw( $_POST['tracker_url'] ) );
-        echo '<div class="updated"><p>' . __( 'Settings saved.', 'pmpro-matomo' ) . '</p></div>';
+    $has_connect_matomo = class_exists( 'WP_Piwik' );
+    $has_matomo_analytics = defined( 'MATOMO_ANALYTICS_FILE' );
+    $site_id = '';
+    $tracker_url = '';
+
+    if ( $has_connect_matomo ) {
+        $wp_piwik = $GLOBALS['wp-piwik'];
+        $settings = $wp_piwik->getSettings();
+        $site_id = $settings->getGlobalOption( 'site_id' );
+        $tracker_url = $settings->getGlobalOption( 'matomo_url' );
+    } elseif ( $has_matomo_analytics ) {
+        $settings = new \WpMatomo\Settings();
+        $site_id = \WpMatomo\Site::get_matomo_site_id( get_current_blog_id() );
+        $tracker_url = $settings->get_tracker_api_url_in_matomo_dir();
     }
 
-    $enable_tracking = get_option( 'pmpro_matomo_enable_tracking', 'no' );
-    $site_id = get_option( 'pmpro_matomo_site_id', '' );
-    $tracker_url = get_option( 'pmpro_matomo_tracker_url', '' );
     ?>
     <div class="wrap">
         <h1><?php esc_html_e( 'Paid Memberships Pro - Matomo Settings', 'pmpro-matomo' ); ?></h1>
-        <form method="post" action="">
-            <?php wp_nonce_field( 'pmpro_matomo_save_settings' ); ?>
-            <table class="form-table">
-                <tr>
-                    <th><label for="enable_tracking"><?php esc_html_e( 'Enable Tracking', 'pmpro-matomo' ); ?></label></th>
-                    <td>
-                        <select name="enable_tracking" id="enable_tracking">
-                            <option value="yes" <?php selected( $enable_tracking, 'yes' ); ?>><?php esc_html_e( 'Yes', 'pmpro-matomo' ); ?></option>
-                            <option value="no" <?php selected( $enable_tracking, 'no' ); ?>><?php esc_html_e( 'No', 'pmpro-matomo' ); ?></option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label for="site_id"><?php esc_html_e( 'Matomo Site ID', 'pmpro-matomo' ); ?></label></th>
-                    <td><input type="text" name="site_id" id="site_id" value="<?php echo esc_attr( $site_id ); ?>" class="regular-text" placeholder="e.g., 1"></td>
-                </tr>
-                <tr>
-                    <th><label for="tracker_url"><?php esc_html_e( 'Matomo Tracker URL', 'pmpro-matomo' ); ?></label></th>
-                    <td><input type="url" name="tracker_url" id="tracker_url" value="<?php echo esc_attr( $tracker_url ); ?>" class="regular-text" placeholder="e.g., https://your-matomo-domain.com"></td>
-                </tr>
-            </table>
-            <p class="submit"><input type="submit" name="pmpro_matomo_save" class="button-primary" value="<?php esc_attr_e( 'Save Changes', 'pmpro-matomo' ); ?>"></p>
-        </form>
+        <p><?php esc_html_e( 'This plugin uses settings from "Connect Matomo" or "Matomo Analytics". Please configure Matomo in their respective settings pages:', 'pmpro-matomo' ); ?></p>
+        <ul>
+            <?php if ( $has_connect_matomo ) : ?>
+                <li><a href="<?php echo esc_url( admin_url( 'options-general.php?page=wp-piwik' ) ); ?>"><?php esc_html_e( 'Configure Connect Matomo', 'pmpro-matomo' ); ?></a></li>
+            <?php endif; ?>
+            <?php if ( $has_matomo_analytics ) : ?>
+                <li><a href="<?php echo esc_url( admin_url( 'admin.php?page=matomo-analytics' ) ); ?>"><?php esc_html_e( 'Configure Matomo Analytics', 'pmpro-matomo' ); ?></a></li>
+            <?php endif; ?>
+        </ul>
+        <h2><?php esc_html_e( 'Current Matomo Configuration', 'pmpro-matomo' ); ?></h2>
+        <table class="form-table">
+            <tr>
+                <th><?php esc_html_e( 'Matomo Site ID', 'pmpro-matomo' ); ?></th>
+                <td><?php echo esc_html( $site_id ?: __( 'Not configured', 'pmpro-matomo' ) ); ?></td>
+            </tr>
+            <tr>
+                <th><?php esc_html_e( 'Matomo Tracker URL', 'pmpro-matomo' ); ?></th>
+                <td><?php echo esc_html( $tracker_url ?: __( 'Not configured', 'pmpro-matomo' ) ); ?></td>
+            </tr>
+        </table>
     </div>
     <?php
 }
