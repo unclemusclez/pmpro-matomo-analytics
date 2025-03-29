@@ -1,154 +1,76 @@
 <?php
-/**
- * All admin (WordPress dashboard) related functions go here.
- */
-
-/**
- * Show a message if Paid Memberships Pro is inactive or not installed.
- */
-function pmproga4_required_installed() {
-
-    // The required plugins for this Add On to work.
-    $required_plugins = array(
-        'paid-memberships-pro' => __( 'Paid Memberships Pro', 'pmpro-google-analytics' ),
+function pmpro_matomo_admin_menu() {
+    add_options_page(
+        __( 'PMPro Matomo', 'pmpro-matomo' ),
+        __( 'PMPro Matomo', 'pmpro-matomo' ),
+        'manage_options',
+        'pmpro_matomo_settings',
+        'pmpro_matomo_settings_page'
     );
-
-    // Check if the required plugins are installed.
-    $missing_plugins = array();
-    foreach ( $required_plugins as $plugin => $name ) {
-        if ( ! file_exists( WP_PLUGIN_DIR . '/' . $plugin ) ) {
-            $missing_plugins[$plugin] = $name;
-        }
-    }
-
-    // If there are missing plugins, show a notice.
-    if ( ! empty( $missing_plugins ) ) {
-        // Build install links here.
-        $install_plugins = array();
-        foreach( $missing_plugins as $path => $name ) {
-            $install_plugins[] = sprintf( '<a href="%s">%s</a>', esc_url( wp_nonce_url( self_admin_url( 'update.php?action=install-plugin&plugin=' . $path ), 'install-plugin_' . $path ) ), esc_html( $name ) );
-        }
-
-        // Show notice with install_plugin links.
-        printf(
-            '<div class="notice notice-warning"><p>%s</p></div>',
-            sprintf(
-                esc_html__( 'The following plugin(s) are required for the %1$s plugin to work: %2$s', 'pmpro-google-analytics' ),
-                esc_html__( 'Google Analytics Integration', 'pmpro-google-analytics' ),
-                implode( ', ', $install_plugins ) // $install_plugins was escaped when built.
-            )
-        );
-
-        return; // Bail here, so we only show one notice at a time.
-    }
-
-    // Check if the required plugins are active and show a notice with activation links if they are not
-    $inactive_plugins = array();
-    foreach ( $required_plugins as $plugin => $name ) {
-        $full_path = $plugin . '/' . $plugin . '.php';
-        if ( ! is_plugin_active( $full_path ) ) {
-            $inactive_plugins[$plugin] = $name;
-        }
-    }
-
-    // If there are inactive plugins, show a notice.
-    if ( ! empty( $inactive_plugins ) ) {
-        // Build activate links here.
-        $activate_plugins = array();
-        foreach( $inactive_plugins as $path => $name ) {
-            $full_path = $path . '/' . $path . '.php';
-            $activate_plugins[] = sprintf( '<a href="%s">%s</a>', esc_url( wp_nonce_url( self_admin_url( 'plugins.php?action=activate&plugin=' . $full_path ), 'activate-plugin_' . $full_path ) ), esc_html( $name ) );
-        }
-
-        // Show notice with activate_plugin links.
-        printf(
-            '<div class="notice notice-warning"><p>%s</p></div>',
-            sprintf(
-                esc_html__( 'The following plugin(s) are required for the %1$s plugin to work: %2$s', 'pmpro-google-analytics' ),
-                esc_html__( 'Google Analytics Integration', 'pmpro-google-analytics' ),
-                implode( ', ', $activate_plugins ) // $activate_plugins was escaped when built.
-            )
-        );
-
-        return; // Bail here, so we only show one notice at a time.
-    }
 }
-add_action( 'admin_notices', 'pmproga4_required_installed' );
+add_action( 'admin_menu', 'pmpro_matomo_admin_menu' );
 
-/**
- * Show an admin notice to finish set up if there are no settings enabled.
- */
-function pmproga4_show_setup_notice() {
-
+function pmpro_matomo_settings_page() {
     if ( ! current_user_can( 'manage_options' ) ) {
-        return;
+        wp_die( __( 'You do not have sufficient permissions to access this page.', 'pmpro-matomo' ) );
     }
 
-    // Only show this notice on certain pages.
-    if ( ! isset( $_REQUEST['page'] ) ) {
-        return;
+    if ( isset( $_POST['pmpro_matomo_save'] ) && check_admin_referer( 'pmpro_matomo_save_settings' ) ) {
+        update_option( 'pmpro_matomo_enable_tracking', sanitize_text_field( $_POST['enable_tracking'] ) );
+        update_option( 'pmpro_matomo_site_id', sanitize_text_field( $_POST['site_id'] ) );
+        update_option( 'pmpro_matomo_tracker_url', esc_url_raw( $_POST['tracker_url'] ) );
+        echo '<div class="updated"><p>' . __( 'Settings saved.', 'pmpro-matomo' ) . '</p></div>';
     }
 
-    // Only show this on the PMPro pages.
-    if ( strpos( $_REQUEST['page'], 'pmpro' ) === false ) {
-        return;
-    }
-
-    // Don't show on the actual settings page.
-    if ( $_REQUEST['page'] === 'pmpro-google-analytics' ) {
-        return;
-    }
-
-    $pmproga4_options = get_option( 'pmproga4_settings' );
-
-    //Show admin notice if options are empty.
-    if ( ! $pmproga4_options || empty( $pmproga4_options['measurement_id'] ) ) {
-        ?>
-        <div class="notice notice-warning">
-            <p><?php esc_html_e( 'Please configure the Google Analytics settings for Paid Memberships Pro.', 'pmpro-google-analytics' ); ?></p>
-            <p><a href="<?php echo esc_url( admin_url( 'options-general.php?page=pmpro-google-analytics' ) ); ?>" class="button button-primary"><?php esc_html_e( 'Configure Google Analytics Settings', 'pmpro-google-analytics' ); ?></a></p>
-        </div>
-        <?php
-    }
+    $enable_tracking = get_option( 'pmpro_matomo_enable_tracking', 'no' );
+    $site_id = get_option( 'pmpro_matomo_site_id', '' );
+    $tracker_url = get_option( 'pmpro_matomo_tracker_url', '' );
+    ?>
+    <div class="wrap">
+        <h1><?php esc_html_e( 'Paid Memberships Pro - Matomo Settings', 'pmpro-matomo' ); ?></h1>
+        <form method="post" action="">
+            <?php wp_nonce_field( 'pmpro_matomo_save_settings' ); ?>
+            <table class="form-table">
+                <tr>
+                    <th><label for="enable_tracking"><?php esc_html_e( 'Enable Tracking', 'pmpro-matomo' ); ?></label></th>
+                    <td>
+                        <select name="enable_tracking" id="enable_tracking">
+                            <option value="yes" <?php selected( $enable_tracking, 'yes' ); ?>><?php esc_html_e( 'Yes', 'pmpro-matomo' ); ?></option>
+                            <option value="no" <?php selected( $enable_tracking, 'no' ); ?>><?php esc_html_e( 'No', 'pmpro-matomo' ); ?></option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="site_id"><?php esc_html_e( 'Matomo Site ID', 'pmpro-matomo' ); ?></label></th>
+                    <td><input type="text" name="site_id" id="site_id" value="<?php echo esc_attr( $site_id ); ?>" class="regular-text" placeholder="e.g., 1"></td>
+                </tr>
+                <tr>
+                    <th><label for="tracker_url"><?php esc_html_e( 'Matomo Tracker URL', 'pmpro-matomo' ); ?></label></th>
+                    <td><input type="url" name="tracker_url" id="tracker_url" value="<?php echo esc_attr( $tracker_url ); ?>" class="regular-text" placeholder="e.g., https://your-matomo-domain.com"></td>
+                </tr>
+            </table>
+            <p class="submit"><input type="submit" name="pmpro_matomo_save" class="button-primary" value="<?php esc_attr_e( 'Save Changes', 'pmpro-matomo' ); ?>"></p>
+        </form>
+    </div>
+    <?php
 }
-add_action( 'admin_notices', 'pmproga4_show_setup_notice' );
 
 /**
- * Add a link to the settings page to the plugin action links.
+ * Admin notice if PMPro is not installed
  */
-function pmproga4_plugin_action_links( $links ) {
-
-    // Paid Memberships Pro not activated, let's bail.
-	if ( ! defined( 'PMPRO_VERSION' ) ) {
-        return $links;
+function pmpro_matomo_pmpro_not_detected() {
+    if ( ! isset( $_REQUEST['page'] ) || strpos( $_REQUEST['page'], 'pmpro' ) === false ) {
+        return;
     }
 
-    // Check if the user is an admin
-    if ( ! current_user_can( 'manage_options' ) ) {
-        return $links;
+    if ( ! function_exists( 'pmpro_getMembershipLevelForUser' ) ) {
+        printf(
+            '<div class="notice notice-error"><p>%s <a href="%s" target="_blank">%s</a> %s</p></div>',
+            esc_html__( 'Paid Memberships Pro - Matomo Integration', 'pmpro-matomo' ),
+            esc_url( 'https://wordpress.org/plugins/paid-memberships-pro/' ),
+            esc_html__( 'requires Paid Memberships Pro', 'pmpro-matomo' ),
+            esc_html__( 'to be installed and active.', 'pmpro-matomo' )
+        );
     }
-
-	$new_links = array(
-		'<a href="' . admin_url( 'options-general.php?page=pmpro-google-analytics' ) . '">' . esc_html__( 'Settings', 'pmpro-google-analytics' ) . '</a>',
-	);
-	return array_merge( $new_links, $links );
 }
-add_filter( 'plugin_action_links_' . PMPROGA_BASENAME, 'pmproga4_plugin_action_links' );
-
-/**
- * Function to add links to the plugin row meta
- *
- * @param array  $links Array of links to be shown in plugin meta.
- * @param string $file Filename of the plugin meta is being shown for.
- */
-function pmproga_plugin_row_meta( $links, $file ) {
-	if ( strpos( $file, 'pmpro-google-analytics.php' ) !== false ) {
-		$new_links = array(
-			'<a href="' . esc_url( 'https://www.paidmembershipspro.com/add-ons/google-analytics/' ) . '" title="' . esc_attr__( 'View Documentation', 'pmpro-google-analytics' ) . '">' . esc_html__( 'Docs', 'pmpro-google-analytics' ) . '</a>',
-			'<a href="' . esc_url( 'https://www.paidmembershipspro.com/support/' ) . '" title="' . esc_attr__( 'Visit Customer Support Forum', 'pmpro-google-analytics' ) . '">' . esc_html__( 'Support', 'pmpro-google-analytics' ) . '</a>',
-		);
-		$links = array_merge( $links, $new_links );
-	}
-	return $links;
-}
-add_filter( 'plugin_row_meta', 'pmproga_plugin_row_meta', 10, 2 );
+add_action( 'admin_notices', 'pmpro_matomo_pmpro_not_detected' );
