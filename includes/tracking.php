@@ -5,9 +5,23 @@ class PMPro_Matomo_Tracking {
     private $is_enabled;
 
     public function __construct() {
-        $this->site_id = get_option( 'pmpro_matomo_site_id', '' );
-        $this->tracker_url = get_option( 'pmpro_matomo_tracker_url', '' );
-        $this->is_enabled = get_option( 'pmpro_matomo_enable_tracking', 'no' ) === 'yes' && ! empty( $this->site_id ) && ! empty( $this->tracker_url );
+        // Check for Connect Matomo settings first
+        if ( class_exists( 'WP_Piwik' ) && isset( $GLOBALS['wp-piwik'] ) ) {
+            $wp_piwik = $GLOBALS['wp-piwik'];
+            $settings = $wp_piwik->getSettings();
+            $this->site_id = $settings->getGlobalOption( 'site_id' );
+            $this->tracker_url = $settings->getGlobalOption( 'matomo_url' );
+            $this->is_enabled = $settings->getGlobalOption( 'track_mode' ) !== 'disabled';
+        }
+        // Fallback to Matomo Analytics settings
+        elseif ( defined( 'MATOMO_ANALYTICS_FILE' ) ) {
+            $settings = new \WpMatomo\Settings();
+            $this->site_id = \WpMatomo\Site::get_matomo_site_id( get_current_blog_id() );
+            $this->tracker_url = $settings->get_tracker_api_url_in_matomo_dir(); // Adjust based on actual method
+            $this->is_enabled = $settings->is_tracking_enabled();
+        } else {
+            $this->is_enabled = false;
+        }
 
         if ( $this->is_enabled ) {
             $this->register_hooks();
@@ -21,6 +35,9 @@ class PMPro_Matomo_Tracking {
     }
 
     public function add_tracking_code() {
+        if ( ! $this->site_id || ! $this->tracker_url ) {
+            return;
+        }
         ?>
         <!-- Matomo -->
         <script type="text/javascript">

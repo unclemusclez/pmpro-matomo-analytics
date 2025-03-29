@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Paid Memberships Pro - Matomo Integration
- * Plugin URI: https://www.paidmembershipspro.com/add-ons/pmpro-matomo/
- * Description: Connect Paid Memberships Pro to a self-hosted Matomo instance to track membership signups, level changes, and user activity.
+ * Plugin URI: https://github.com/unclemusclez/pmpro-matomo
+ * Description: Connect Paid Memberships Pro to a Matomo instance to track membership signups, level changes, and user activity.
  * Version: 1.0
- * Author: Paid Memberships Pro
- * Author URI: https://www.paidmembershipspro.com
+ * Author: Devin J. Dawson
+ * Author URI: https://waterpistol.co
  * Text Domain: pmpro-matomo
  * Domain Path: /languages
  * License: GPL v3 or later
@@ -28,10 +28,35 @@ function pmpro_matomo_load_textdomain() {
 add_action( 'plugins_loaded', 'pmpro_matomo_load_textdomain' );
 
 /**
- * Initialize tracking if PMPro is active
+ * Admin notice for Matomo dependency
+ */
+function pmpro_matomo_requirements_check() {
+    if ( ! isset( $_REQUEST['page'] ) || strpos( $_REQUEST['page'], 'pmpro' ) === false ) {
+        return;
+    }
+
+    $has_connect_matomo = class_exists( 'WP_Piwik' ); // Connect Matomo
+    $has_matomo_analytics = defined( 'MATOMO_ANALYTICS_FILE' ); // Matomo Analytics
+
+    if ( ! $has_connect_matomo && ! $has_matomo_analytics ) {
+        printf(
+            '<div class="notice notice-warning"><p>%s</p></div>',
+            sprintf(
+                esc_html__( 'The %1$s plugin requires either "Connect Matomo" or "Matomo Analytics" to be installed and active. <a href="%2$s">Install Connect Matomo</a> or <a href="%3$s">Install Matomo Analytics</a>.', 'pmpro-matomo' ),
+                esc_html__( 'Paid Memberships Pro - Matomo Integration', 'pmpro-matomo' ),
+                esc_url( admin_url( 'plugin-install.php?s=Connect+Matomo&tab=search&type=term' ) ),
+                esc_url( admin_url( 'plugin-install.php?s=Matomo+Analytics&tab=search&type=term' ) )
+            )
+        );
+    }
+}
+add_action( 'admin_notices', 'pmpro_matomo_requirements_check' );
+
+/**
+ * Initialize tracking if PMPro and Matomo are active
  */
 function pmpro_matomo_init() {
-    if ( function_exists( 'pmpro_getMembershipLevelForUser' ) ) {
+    if ( function_exists( 'pmpro_getMembershipLevelForUser' ) && ( class_exists( 'WP_Piwik' ) || defined( 'MATOMO_ANALYTICS_FILE' ) ) ) {
         new PMPro_Matomo_Tracking();
     }
 }
