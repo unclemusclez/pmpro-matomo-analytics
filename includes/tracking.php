@@ -11,8 +11,13 @@ class PMPro_Matomo_Tracking {
         $this->tracker_url = '';
         $this->is_enabled = false;
 
-        // Check for WP-Piwik to get settings
-        if (class_exists('WP_Piwik')) {
+        // Get our plugin's settings first
+        $settings = get_option('pmpro_matomo_settings', []);
+        $this->tracker_url = !empty($settings['tracker_url']) ? rtrim($settings['tracker_url'], '/') : '';
+        $this->site_id = !empty($settings['site_id']) ? $settings['site_id'] : '';
+
+        // Only try WP-Piwik if our settings are incomplete
+        if ((empty($this->tracker_url) || empty($this->site_id)) && class_exists('WP_Piwik')) {
             if (!isset($GLOBALS['wp-piwik'])) {
                 $GLOBALS['wp-piwik'] = new WP_Piwik();
             }
@@ -23,15 +28,17 @@ class PMPro_Matomo_Tracking {
                 $this->site_id = $wp_piwik->getOption('site_id') ?: '';
             }
 
-            // Attempt to retrieve Tracker URL safely
-            if (method_exists($wp_piwik, 'getMatomoUrl')) {
-                $this->tracker_url = rtrim($wp_piwik->getMatomoUrl() ?: '', '/');
-            } elseif (method_exists($wp_piwik, 'getPiwikUrl')) {
-                $this->tracker_url = rtrim($wp_piwik->getPiwikUrl() ?: '', '/');
-            } elseif (method_exists($wp_piwik, 'getOption')) {
-                // Use null coalescing to avoid undefined key warning
-                $this->tracker_url = rtrim($wp_piwik->getOption('piwik_url') ?? '', '/');
+            // Attempt to retrieve Tracker URL
+            if ( method_exists( $wp_piwik, 'getMatomoUrl' ) ) {
+                $this->tracker_url = rtrim( $wp_piwik->getMatomoUrl() ?: '', '/' );
+            } elseif ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
+                $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl() ?: '', '/' );
             }
+
+            // Fallback to getOption('piwik_url')
+            // if ( empty( $this->tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
+            //     $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ) ?: '', '/' );
+            // }
 
             // Fallback to global settings with safe check
             if (empty($this->tracker_url)) {
@@ -55,15 +62,11 @@ class PMPro_Matomo_Tracking {
                 error_log('PMPro Matomo: Missing site_id or valid tracker_url - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set'));
             }
         } else {
-            error_log('PMPro Matomo: WP_Piwik class not found - tracking disabled');
+            error_log('PMPro Matomo: Missing site_id or valid tracker_url - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set'));
         }
 
         // Debug logging
         error_log('PMPro Matomo Tracking: Initialized - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set') . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no'));
-        if (class_exists('WP_Piwik')) {
-            error_log('PMPro Matomo: WP-Piwik Global Settings: ' . print_r(get_option('wp_piwik_global_settings', []), true));
-            error_log('PMPro Matomo: WP-Piwik Site Settings: ' . print_r(get_option('wp_piwik_settings', []), true));
-        }
     }
 
     public function register_hooks() {
