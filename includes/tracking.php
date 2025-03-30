@@ -27,11 +27,11 @@ class PMPro_Matomo_Tracking {
                 if (empty($this->site_id)) {
                     $this->site_id = $wp_piwik->getOption('site_id') ?: '';
                 }
-                if (empty($this->tracker_url)) {
-                    // Use a safe check here, though warning is in WP-Piwik
-                    $piwik_url = $wp_piwik->getOption('piwik_url');
-                    $this->tracker_url = $piwik_url ? rtrim($piwik_url, '/') : '';
-                }
+                // if (empty($this->tracker_url)) {
+                //     // Use a safe check here, though warning is in WP-Piwik
+                //     $piwik_url = $wp_piwik->getOption('piwik_url');
+                //     $this->tracker_url = $piwik_url ? rtrim($piwik_url, '/') : '';
+                // }
             }
 
             if (empty($this->tracker_url)) {
