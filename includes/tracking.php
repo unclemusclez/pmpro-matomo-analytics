@@ -7,10 +7,10 @@ class PMPro_Matomo_Tracking {
     public function __construct() {
         // Check for Connect Matomo (WP-Piwik) settings first
         if ( class_exists( 'WP_Piwik' ) ) {
-            $settings = get_option( 'wp-piwik_settings', [] );
+            $settings = get_option( 'wp_piwik_settings', [] ); // Corrected option name
             $this->site_id = isset( $settings['site_id'] ) ? $settings['site_id'] : '';
-            $this->tracker_url = isset( $settings['piwik_url'] ) ? rtrim( $settings['piwik_url'], '/' ) : '';
-            $this->is_enabled = ! empty( $settings['track_mode'] ) && $settings['track_mode'] !== 'disabled';
+            $this->tracker_url = isset( $settings['piwik_path'] ) ? rtrim( $settings['piwik_path'], '/' ) : ''; // Changed to 'piwik_path'
+            $this->is_enabled = ! empty( $settings['add_tracking_code'] ) && $settings['add_tracking_code']; // Corrected key
             error_log( 'PMPro Matomo: WP-Piwik settings - Site ID: ' . $this->site_id . ', Tracker URL: ' . $this->tracker_url . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
             error_log( 'PMPro Matomo: Full WP-Piwik settings dump: ' . print_r( $settings, true ) );
         }

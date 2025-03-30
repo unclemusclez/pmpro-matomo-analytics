@@ -21,9 +21,9 @@ function pmpro_matomo_settings_page() {
     $tracker_url = '';
 
     if ( $has_connect_matomo ) {
-        $settings = get_option( 'wp-piwik_settings', [] );
+        $settings = get_option( 'wp_piwik_settings', [] );
         $site_id = isset( $settings['site_id'] ) ? $settings['site_id'] : '';
-        $tracker_url = isset( $settings['piwik_url'] ) ? $settings['piwik_url'] : '';
+        $tracker_url = isset( $settings['piwik_path'] ) ? $settings['piwik_path'] : '';
     } elseif ( $has_matomo_analytics ) {
         $settings = new \WpMatomo\Settings();
         $site_id = \WpMatomo\Site::get_matomo_site_id( get_current_blog_id() );
