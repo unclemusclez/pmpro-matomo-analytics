@@ -6,13 +6,13 @@ class PMPro_Matomo_Tracking {
 
     public function __construct() {
         // Check for Connect Matomo (WP-Piwik) settings first
-        if ( class_exists( 'WP_Piwik' ) && isset( $GLOBALS['wp-piwik'] ) ) {
+        if ( class_exists( 'WP_Piwik' ) ) {
             $settings = get_option( 'wp-piwik_settings', [] );
             $this->site_id = isset( $settings['site_id'] ) ? $settings['site_id'] : '';
             $this->tracker_url = isset( $settings['piwik_url'] ) ? rtrim( $settings['piwik_url'], '/' ) : '';
             $this->is_enabled = ! empty( $settings['track_mode'] ) && $settings['track_mode'] !== 'disabled';
-            // Debug logging
             error_log( 'PMPro Matomo: WP-Piwik settings - Site ID: ' . $this->site_id . ', Tracker URL: ' . $this->tracker_url . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
+            error_log( 'PMPro Matomo: Full WP-Piwik settings dump: ' . print_r( $settings, true ) );
         }
         // Fallback to Matomo Analytics settings
         elseif ( defined( 'MATOMO_ANALYTICS_FILE' ) ) {
@@ -23,7 +23,7 @@ class PMPro_Matomo_Tracking {
             error_log( 'PMPro Matomo: Matomo Analytics - Site ID: ' . $this->site_id . ', Tracker URL: ' . $this->tracker_url );
         } else {
             $this->is_enabled = false;
-            error_log( 'PMPro Matomo: No Matomo plugin detected.' );
+            error_log( 'PMPro Matomo: No Matomo plugin detected.');
         }
 
         if ( $this->is_enabled && $this->site_id && $this->tracker_url ) {
@@ -38,7 +38,6 @@ class PMPro_Matomo_Tracking {
     }
 
     public function add_tracking_code() {
-        error_log( 'WP-Piwik settings dump: ' . print_r( $settings, true ) ); // Dump WP-Piwik Settings
         if ( ! $this->site_id || ! $this->tracker_url ) {
             return;
         }

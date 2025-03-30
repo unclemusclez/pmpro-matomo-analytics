@@ -55,11 +55,17 @@ function pmpro_matomo_requirements_check() {
 add_action( 'admin_notices', 'pmpro_matomo_requirements_check' );
 
 /**
- * Initialize tracking if PMPro and Matomo are active
+ * Initialize tracking if PMPro and Matomo are active, delayed to after plugins_loaded
  */
 function pmpro_matomo_init() {
-    if ( function_exists( 'pmpro_getMembershipLevelForUser' ) && ( class_exists( 'WP_Piwik' ) || defined( 'MATOMO_ANALYTICS_FILE' ) ) ) {
+    if ( function_exists( 'pmpro_getMembershipLevelForUser' ) && class_exists( 'WP_Piwik' ) ) {
+        // Ensure WP-Piwik is fully initialized
+        if ( ! isset( $GLOBALS['wp-piwik'] ) ) {
+            $GLOBALS['wp-piwik'] = new WP_Piwik();
+        }
+        new PMPro_Matomo_Tracking();
+    } elseif ( function_exists( 'pmpro_getMembershipLevelForUser' ) && defined( 'MATOMO_ANALYTICS_FILE' ) ) {
         new PMPro_Matomo_Tracking();
     }
 }
-add_action( 'plugins_loaded', 'pmpro_matomo_init' );
+add_action( 'plugins_loaded', 'pmpro_matomo_init', 20 ); // Increased priority to ensure WP-Piwik loads first
