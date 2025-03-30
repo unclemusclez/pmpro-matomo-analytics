@@ -20,20 +20,37 @@ function pmpro_matomo_settings_page() {
     $site_id = '';
     $tracker_url = '';
 
-    if ( $has_connect_matomo && isset( $GLOBALS['wp-piwik'] ) && method_exists( $GLOBALS['wp-piwik'], 'getOption' ) ) {
+    if ( $has_connect_matomo ) {
+        if ( ! isset( $GLOBALS['wp-piwik'] ) ) {
+            $GLOBALS['wp-piwik'] = new WP_Piwik();
+        }
         $wp_piwik = $GLOBALS['wp-piwik'];
-        $site_id = $wp_piwik->getOption( 'site_id' );
-        $tracker_url = rtrim( $wp_piwik->getOption( 'piwik_path' ), '/' );
-    } elseif ( $has_connect_matomo ) {
-        $global_settings = get_option( 'wp_piwik_global_settings', [] );
-        $site_settings = get_option( 'wp_piwik_settings', [] );
-        $site_id = isset( $site_settings['site_id'] ) ? $site_settings['site_id'] : (isset( $global_settings['default_site'] ) ? $global_settings['default_site'] : '');
-        $tracker_url = isset( $site_settings['piwik_path'] ) ? $site_settings['piwik_path'] : (isset( $global_settings['piwik_path'] ) ? $global_settings['piwik_path'] : '');
+        
+        if ( method_exists( $wp_piwik, 'getOption' ) ) {
+            $site_id = $wp_piwik->getOption( 'site_id' );
+            $this->is_enabled = $wp_piwik->getOption( 'add_tracking_code' ) ? true : false;
+        }
+        if ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
+            $tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
+        } elseif ( method_exists( $wp_piwik, 'getOption' ) ) {
+            $tracker_url = rtrim( $wp_piwik->getOption( 'piwik_path' ), '/' );
+        }
+
+        // Fallback to options if direct methods fail
+        if ( empty( $site_id ) || empty( $tracker_url ) ) {
+            $global_settings = get_option( 'wp_piwik_global_settings', [] );
+            $site_settings = get_option( 'wp_piwik_settings', [] );
+            $site_id = isset( $site_settings['site_id'] ) ? $site_settings['site_id'] : (isset( $global_settings['default_site'] ) ? $global_settings['default_site'] : '');
+            $tracker_url = isset( $site_settings['piwik_path'] ) ? $site_settings['piwik_path'] : (isset( $global_settings['piwik_path'] ) ? $global_settings['piwik_path'] : '');
+        }
     } elseif ( $has_matomo_analytics ) {
         $settings = new \WpMatomo\Settings();
         $site_id = \WpMatomo\Site::get_matomo_site_id( get_current_blog_id() );
         $tracker_url = $settings->get_tracker_api_url_in_matomo_dir();
     }
+
+    // Avoid null in rtrim
+    $tracker_url = $tracker_url ? rtrim( $tracker_url, '/' ) : '';
 
     ?>
     <div class="wrap">
