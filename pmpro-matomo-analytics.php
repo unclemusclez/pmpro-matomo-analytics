@@ -48,6 +48,8 @@ function pmpro_matomo_requirements_check() {
                 esc_url( admin_url( 'plugin-install.php?s=Matomo+Analytics&tab=search&type=term' ) )
             )
         );
+    } else {
+        error_log( 'PMPro Matomo: Matomo plugin detected - Connect Matomo: ' . ($has_connect_matomo ? 'yes' : 'no') . ', Matomo Analytics: ' . ($has_matomo_analytics ? 'yes' : 'no') );
     }
 }
 add_action( 'admin_notices', 'pmpro_matomo_requirements_check' );
