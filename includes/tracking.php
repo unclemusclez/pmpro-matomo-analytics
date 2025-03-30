@@ -31,11 +31,11 @@ class PMPro_Matomo_Tracking {
             }
 
 
-            // Fallback to global settings with safe check
-            if (empty($this->tracker_url)) {
-                $global_settings = get_option('wp_piwik_global_settings', []);
-                $this->tracker_url = isset($global_settings['piwik_url']) ? rtrim($global_settings['piwik_url'], '/') : '';
-            }
+            // // Fallback to global settings with safe check
+            // if (empty($this->tracker_url)) {
+            //     $global_settings = get_option('wp_piwik_global_settings', []);
+            //     $this->tracker_url = isset($global_settings['piwik_url']) ? rtrim($global_settings['piwik_url'], '/') : '';
+            // }
 
             // Validate and initialize MatomoTracker
             if ($this->site_id && $this->tracker_url && filter_var($this->tracker_url, FILTER_VALIDATE_URL)) {
