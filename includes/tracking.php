@@ -7,20 +7,23 @@ class PMPro_Matomo_Tracking {
     public function __construct() {
         // Check for Connect Matomo settings first
         if ( class_exists( 'WP_Piwik' ) && isset( $GLOBALS['wp-piwik'] ) ) {
-            $wp_piwik = $GLOBALS['wp-piwik'];
-            $settings = $wp_piwik->getSettings();
-            $this->site_id = $settings->getGlobalOption( 'site_id' );
-            $this->tracker_url = $settings->getGlobalOption( 'matomo_url' );
-            $this->is_enabled = $settings->getGlobalOption( 'track_mode' ) !== 'disabled';
+            $settings = get_option( 'wp-piwik_settings', [] );
+            $this->site_id = isset( $settings['site_id'] ) ? $settings['site_id'] : '';
+            $this->tracker_url = isset( $settings['piwik_url'] ) ? rtrim( $settings['piwik_url'], '/' ) : ''; // Corrected to 'piwik_url'
+            $this->is_enabled = ! empty( $settings['track_mode'] ) && $settings['track_mode'] !== 'disabled';
+            // Debug logging
+            error_log( 'PMPro Matomo: Connect Matomo detected. Site ID: ' . $this->site_id . ', Tracker URL: ' . $this->tracker_url . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
         }
         // Fallback to Matomo Analytics settings
         elseif ( defined( 'MATOMO_ANALYTICS_FILE' ) ) {
             $settings = new \WpMatomo\Settings();
             $this->site_id = \WpMatomo\Site::get_matomo_site_id( get_current_blog_id() );
-            $this->tracker_url = $settings->get_tracker_api_url_in_matomo_dir(); // Adjust based on actual method
+            $this->tracker_url = $settings->get_tracker_api_url_in_matomo_dir();
             $this->is_enabled = $settings->is_tracking_enabled();
+            error_log( 'PMPro Matomo: Matomo Analytics detected. Site ID: ' . $this->site_id . ', Tracker URL: ' . $this->tracker_url );
         } else {
             $this->is_enabled = false;
+            error_log( 'PMPro Matomo: No Matomo plugin detected.' );
         }
 
         if ( $this->is_enabled ) {
