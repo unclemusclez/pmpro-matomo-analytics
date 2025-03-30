@@ -1,94 +1,112 @@
 <?php
-function pmpro_matomo_admin_menu() {
-    add_options_page(
-        __('PMPro Matomo', 'pmpro-matomo'),
-        __('PMPro Matomo', 'pmpro-matomo'),
-        'manage_options',
-        'pmpro_matomo_settings',
-        'pmpro_matomo_settings_page'
-    );
+class PMPro_Matomo_Tracking {
+    private $site_id;
+    private $tracker_url;
+    private $is_enabled;
+
+    public function __construct() {
+        // Initialize defaults
+        $this->site_id = '';
+        $this->tracker_url = '';
+        $this->is_enabled = false;
+
+        // Get our plugin's settings first
+        $settings = get_option('pmpro_matomo_settings', []);
+        $this->tracker_url = !empty($settings['tracker_url']) ? rtrim($settings['tracker_url'], '/') : '';
+        $this->site_id = !empty($settings['site_id']) ? $settings['site_id'] : '';
+
+        // Fallback to WP-Piwik if our settings are incomplete
+        if ((empty($this->tracker_url) || empty($this->site_id)) && class_exists('WP_Piwik')) {
+            if (!isset($GLOBALS['wp-piwik'])) {
+                $GLOBALS['wp-piwik'] = new WP_Piwik();
+            }
+            $wp_piwik = $GLOBALS['wp-piwik'];
+
+            if (method_exists($wp_piwik, 'getOption') && empty($this->site_id)) {
+                $this->site_id = $wp_piwik->getOption('site_id') ?: '';
+            }
+
+            // Use your suggested safe URL methods
+            if (empty($this->tracker_url)) {
+                if (method_exists($wp_piwik, 'getMatomoUrl')) {
+                    $this->tracker_url = rtrim($wp_piwik->getMatomoUrl() ?: '', '/');
+                } elseif (method_exists($wp_piwik, 'getPiwikUrl')) {
+                    $this->tracker_url = rtrim($wp_piwik->getPiwikUrl() ?: '', '/');
+                }
+            }
+        }
+
+        // Validate settings
+        if ($this->site_id && $this->tracker_url && filter_var($this->tracker_url, FILTER_VALIDATE_URL)) {
+            $this->is_enabled = true;
+            $this->register_hooks();
+        } else {
+            error_log('PMPro Matomo: Missing site_id or valid tracker_url - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set'));
+        }
+
+        // Debug logging
+        error_log('PMPro Matomo Tracking: Initialized - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set') . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no'));
+    }
+
+    public function register_hooks() {
+        add_action('wp_footer', [$this, 'add_tracking_code'], 20);
+        add_action('pmpro_after_checkout', [$this, 'track_membership_signup'], 10, 2);
+        add_action('pmpro_after_change_membership_level', [$this, 'track_level_change'], 10, 3);
+    }
+
+    public function add_tracking_code() {
+        if (!$this->is_enabled) {
+            return;
+        }
+        ?>
+        <script type="text/javascript">
+            console.log('PMPro Matomo: Tracking enabled - Site ID: <?php echo esc_js($this->site_id); ?>, Tracker URL: <?php echo esc_js($this->tracker_url); ?>');
+        </script>
+        <?php
+    }
+
+    public function track_membership_signup($user_id, $order) {
+        if (!$this->is_enabled) {
+            return;
+        }
+        $level = pmpro_getLevel($order->membership_id);
+        $price = $order->total;
+        ?>
+        <script type="text/javascript">
+            if (typeof _paq !== 'undefined') {
+                _paq.push(['trackEvent', 'Membership', 'Signup', '<?php echo esc_js($level->name); ?>', <?php echo floatval($price); ?>]);
+                _paq.push(['trackGoal', 1, <?php echo floatval($price); ?>]); // Goal ID 1
+                console.log('PMPro Matomo: Event tracked - Membership Signup: <?php echo esc_js($level->name); ?> - <?php echo esc_js($price); ?>');
+            } else {
+                console.log('PMPro Matomo: _paq not found - ensure WP-Piwik is configured and active');
+            }
+        </script>
+        <?php
+    }
+
+    public function track_level_change($level_id, $user_id, $cancel_level) {
+        if (!$this->is_enabled) {
+            return;
+        }
+        $level = pmpro_getLevel($level_id);
+        $level_name = $level ? $level->name : 'None (Cancelled)';
+        ?>
+        <script type="text/javascript">
+            if (typeof _paq !== 'undefined') {
+                _paq.push(['trackEvent', 'Membership', 'Level Change', '<?php echo esc_js($level_name); ?>']);
+                console.log('PMPro Matomo: Event tracked - Membership Level Change: <?php echo esc_js($level_name); ?>');
+            } else {
+                console.log('PMPro Matomo: _paq not found - ensure WP-Piwik is configured and active');
+            }
+        </script>
+        <?php
+    }
+
+    public function get_site_id() {
+        return $this->site_id;
+    }
+
+    public function get_tracker_url() {
+        return $this->tracker_url;
+    }
 }
-add_action('admin_menu', 'pmpro_matomo_admin_menu');
-
-function pmpro_matomo_settings_page() {
-    if (!current_user_can('manage_options')) {
-        wp_die(__('You do not have sufficient permissions to access this page.', 'pmpro-matomo'));
-    }
-
-    if (isset($_POST['pmpro_matomo_save_settings'])) {
-        check_admin_referer('pmpro_matomo_settings_nonce');
-        $options = array(
-            'tracker_url' => sanitize_text_field($_POST['pmpro_matomo_tracker_url']),
-            'site_id' => sanitize_text_field($_POST['pmpro_matomo_site_id'])
-        );
-        update_option('pmpro_matomo_settings', $options);
-        error_log('PMPro Matomo: Settings saved - ' . print_r($options, true));
-        echo '<div class="updated"><p>' . esc_html__('Settings saved.', 'pmpro-matomo') . '</p></div>';
-    }
-
-    $tracking = new PMPro_Matomo_Tracking();
-    $options = get_option('pmpro_matomo_settings', array('tracker_url' => '', 'site_id' => ''));
-    $site_id = $tracking->get_site_id();
-    $tracker_url = $tracking->get_tracker_url();
-    ?>
-    <div class="wrap">
-        <h1><?php esc_html_e('Paid Memberships Pro - Matomo Settings', 'pmpro-matomo'); ?></h1>
-        <p><?php esc_html_e('Configure Matomo tracking settings below.', 'pmpro-matomo'); ?></p>
-        <form method="post" action="">
-            <?php wp_nonce_field('pmpro_matomo_settings_nonce'); ?>
-            <table class="form-table">
-                <tr>
-                    <th><label for="pmpro_matomo_tracker_url"><?php esc_html_e('Matomo Tracker URL', 'pmpro-matomo'); ?></label></th>
-                    <td>
-                        <input type="url" name="pmpro_matomo_tracker_url" id="pmpro_matomo_tracker_url" value="<?php echo esc_attr($options['tracker_url']); ?>" class="regular-text" />
-                        <p class="description"><?php esc_html_e('e.g., https://your-matomo-domain.com/', 'pmpro-matomo'); ?></p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label for="pmpro_matomo_site_id"><?php esc_html_e('Matomo Site ID', 'pmpro-matomo'); ?></label></th>
-                    <td>
-                        <input type="text" name="pmpro_matomo_site_id" id="pmpro_matomo_site_id" value="<?php echo esc_attr($options['site_id']); ?>" class="regular-text" />
-                        <p class="description"><?php esc_html_e('e.g., 3', 'pmpro-matomo'); ?></p>
-                    </td>
-                </tr>
-            </table>
-            <p class="submit">
-                <input type="submit" name="pmpro_matomo_save_settings" class="button button-primary" value="<?php esc_attr_e('Save Changes', 'pmpro-matomo'); ?>" />
-            </p>
-        </form>
-        <h2><?php esc_html_e('Current Matomo Configuration', 'pmpro-matomo'); ?></h2>
-        <table class="form-table">
-            <tr>
-                <th><?php esc_html_e('Matomo Site ID', 'pmpro-matomo'); ?></th>
-                <td><?php echo esc_html($site_id ?: __('Not configured', 'pmpro-matomo')); ?></td>
-            </tr>
-            <tr>
-                <th><?php esc_html_e('Matomo Tracker URL', 'pmpro-matomo'); ?></th>
-                <td><?php echo esc_html($tracker_url ?: __('Not configured', 'pmpro-matomo')); ?></td>
-            </tr>
-        </table>
-        <p><?php printf(
-            esc_html__('Requires WP-Piwik for base tracking. Configure WP-Piwik %shere%s if needed.', 'pmpro-matomo'),
-            '<a href="' . esc_url(admin_url('options-general.php?page=wp-piwik')) . '">',
-            '</a>'
-        ); ?></p>
-    </div>
-    <?php
-}
-
-function pmpro_matomo_pmpro_not_detected() {
-    if (!isset($_REQUEST['page']) || strpos($_REQUEST['page'], 'pmpro') === false) {
-        return;
-    }
-
-    if (!function_exists('pmpro_getMembershipLevelForUser')) {
-        printf(
-            '<div class="notice notice-error"><p>%s <a href="%s" target="_blank">%s</a> %s</p></div>',
-            esc_html__('Paid Memberships Pro - Matomo Integration', 'pmpro-matomo'),
-            esc_url('https://wordpress.org/plugins/paid-memberships-pro/'),
-            esc_html__('requires Paid Memberships Pro', 'pmpro-matomo'),
-            esc_html__('to be installed and active.', 'pmpro-matomo')
-        );
-    }
-}
-add_action('admin_notices', 'pmpro_matomo_pmpro_not_detected');
