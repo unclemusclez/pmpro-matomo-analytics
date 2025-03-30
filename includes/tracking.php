@@ -23,22 +23,31 @@ class PMPro_Matomo_Tracking {
                 $this->site_id = $wp_piwik->getOption( 'site_id' );
             }
 
-            // Attempt to retrieve Tracker URL from WP-Piwik methods
+            // Attempt to retrieve Tracker URL
             if ( method_exists( $wp_piwik, 'getMatomoUrl' ) ) {
-                $this->tracker_url = rtrim( $wp_piwik->getMatomoUrl(), '/' );
+                $this->tracker_url = rtrim( $wp_piwik->getMatomoUrl() ?: '', '/' );
             } elseif ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
-                $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
+                $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl() ?: '', '/' );
             }
 
             // Fallback to getOption('piwik_url')
             if ( empty( $this->tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
-                $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ), '/' );
+                $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ) ?: '', '/' );
             }
 
             // Fallback to global settings
             if ( empty( $this->tracker_url ) ) {
                 $global_settings = get_option( 'wp_piwik_global_settings', [] );
                 $this->tracker_url = isset( $global_settings['piwik_url'] ) ? rtrim( $global_settings['piwik_url'], '/' ) : '';
+                if ( empty( $this->tracker_url ) ) {
+                    $this->tracker_url = isset( $global_settings['piwik_path'] ) ? rtrim( $global_settings['piwik_path'], '/' ) : '';
+                }
+            }
+
+            // Debug WP-Piwik internals
+            if ( empty( $this->tracker_url ) && $this->site_id ) {
+                $this->tracker_url = 'https://analytics.saltrivercanyon.com'; // Temporary fallback based on tracking code
+                error_log( 'PMPro Matomo: Tracker URL not found in WP-Piwik settings, using fallback: ' . $this->tracker_url );
             }
 
             // Validate URL and initialize MatomoTracker
@@ -48,13 +57,15 @@ class PMPro_Matomo_Tracking {
                 MatomoTracker::$URL = $this->tracker_url;
                 $this->tracker = new MatomoTracker( $this->site_id );
                 $this->register_hooks();
-            } else {
-                $this->is_enabled = false;
             }
         }
 
         // Debug logging
         error_log( 'PMPro Matomo Tracking: Initialized - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set') . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
+        if ( class_exists( 'WP_Piwik' ) ) {
+            error_log( 'PMPro Matomo: WP-Piwik Global Settings: ' . print_r( get_option( 'wp_piwik_global_settings', [] ), true ) );
+            error_log( 'PMPro Matomo: WP-Piwik Site Settings: ' . print_r( get_option( 'wp_piwik_settings', [] ), true ) );
+        }
     }
 
     public function register_hooks() {
