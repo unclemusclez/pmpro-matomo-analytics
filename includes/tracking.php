@@ -41,11 +41,11 @@ class PMPro_Matomo_Tracking {
                 $this->tracker_url = isset( $global_settings['piwik_url'] ) ? rtrim( $global_settings['piwik_url'], '/' ) : '';
             }
 
-            // Debug WP-Piwik internals
-            if ( empty( $this->tracker_url ) && $this->site_id ) {
-                $this->tracker_url = 'https://analytics.saltrivercanyon.com'; // Temporary fallback
-                error_log( 'PMPro Matomo: Tracker URL not found in WP-Piwik settings, using fallback: ' . $this->tracker_url );
-            }
+            // // Debug WP-Piwik internals
+            // if ( empty( $this->tracker_url ) && $this->site_id ) {
+            //     $this->tracker_url = 'https://analytics.saltrivercanyon.com'; // Temporary fallback
+            //     error_log( 'PMPro Matomo: Tracker URL not found in WP-Piwik settings, using fallback: ' . $this->tracker_url );
+            // }
 
             // Validate URL and initialize MatomoTracker
             if ( $this->site_id && $this->tracker_url && filter_var( $this->tracker_url, FILTER_VALIDATE_URL ) ) {
