@@ -3,57 +3,52 @@ class PMPro_Matomo_Tracking {
     private $site_id;
     private $tracker_url;
     private $is_enabled;
+    private $tracker;
 
     public function __construct() {
-        // Check for Connect Matomo (WP-Piwik) settings first
+        // Check for WP-Piwik to get settings
         if ( class_exists( 'WP_Piwik' ) ) {
             if ( ! isset( $GLOBALS['wp-piwik'] ) ) {
                 $GLOBALS['wp-piwik'] = new WP_Piwik();
             }
             $wp_piwik = $GLOBALS['wp-piwik'];
-            
+
+            // Get Site ID
             if ( method_exists( $wp_piwik, 'getOption' ) ) {
                 $this->site_id = $wp_piwik->getOption( 'site_id' );
-                // Safely check add_tracking_code, default to true if unset
-                $add_tracking_code = $wp_piwik->getOption( 'add_tracking_code' );
-                $this->is_enabled = $add_tracking_code !== false ? true : false;
             }
+
+            // Try to get Tracker URL from WP-Piwik
             if ( method_exists( $wp_piwik, 'getMatomoUrl' ) ) {
                 $this->tracker_url = rtrim( $wp_piwik->getMatomoUrl(), '/' );
             } elseif ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
                 $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
             }
 
-            // Fallback to getOption('piwik_url') if URL methods fail
+            // Fallback to getOption('piwik_url')
             if ( empty( $this->tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
                 $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ), '/' );
             }
 
-            // Fallback to options if still empty
+            // Fallback to global settings
             if ( empty( $this->tracker_url ) ) {
                 $global_settings = get_option( 'wp_piwik_global_settings', [] );
-                $site_settings = get_option( 'wp_piwik_settings', [] );
-                $this->tracker_url = isset( $site_settings['piwik_path'] ) ? rtrim( $site_settings['piwik_path'], '/' ) : (isset( $global_settings['piwik_path'] ) ? rtrim( $global_settings['piwik_path'], '/' ) : $this->tracker_url);
+                $this->tracker_url = isset( $global_settings['piwik_url'] ) ? rtrim( $global_settings['piwik_url'], '/' ) : (isset( $global_settings['piwik_path'] ) ? rtrim( $global_settings['piwik_path'], '/' ) : '');
             }
-
-            // Debug logging
-            error_log( 'PMPro Matomo Tracking: WP-Piwik settings - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set') . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
-        }
-        // Fallback to Matomo Analytics settings
-        elseif ( defined( 'MATOMO_ANALYTICS_FILE' ) ) {
-            $settings = new \WpMatomo\Settings();
-            $this->site_id = \WpMatomo\Site::get_matomo_site_id( get_current_blog_id() );
-            $this->tracker_url = $settings->get_tracker_api_url_in_matomo_dir();
-            $this->is_enabled = $settings->is_tracking_enabled();
-            error_log( 'PMPro Matomo Tracking: Matomo Analytics - Site ID: ' . $this->site_id . ', Tracker URL: ' . $this->tracker_url );
-        } else {
-            $this->is_enabled = false;
-            error_log( 'PMPro Matomo Tracking: No Matomo plugin detected.');
         }
 
-        if ( $this->is_enabled && $this->site_id && $this->tracker_url ) {
+        // Validate and enable
+        $this->is_enabled = false;
+        if ( $this->site_id && $this->tracker_url && file_exists( $this->tracker_url . '/matomo.php' ) ) {
+            $this->is_enabled = true;
+            require_once PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php';
+            MatomoTracker::$URL = $this->tracker_url;
+            $this->tracker = new MatomoTracker( $this->site_id );
             $this->register_hooks();
         }
+
+        // Debug logging
+        error_log( 'PMPro Matomo Tracking: Initialized - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set') . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
     }
 
     public function register_hooks() {
@@ -63,48 +58,53 @@ class PMPro_Matomo_Tracking {
     }
 
     public function add_tracking_code() {
-        if ( ! $this->site_id || ! $this->tracker_url ) {
+        if ( ! $this->tracker ) {
             return;
         }
+        $this->tracker->doTrackPageView( get_the_title() );
         ?>
-        <!-- Matomo -->
+        <!-- Matomo PHP Tracker -->
         <script type="text/javascript">
-            var _paq = window._paq = window._paq || [];
-            _paq.push(['trackPageView']);
-            _paq.push(['enableLinkTracking']);
-            (function() {
-                var u = "<?php echo esc_js( rtrim( $this->tracker_url, '/' ) ); ?>/";
-                _paq.push(['setTrackerUrl', u + 'matomo.php']);
-                _paq.push(['setSiteId', '<?php echo esc_js( $this->site_id ); ?>']);
-                var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
-                g.type = 'text/javascript'; g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
-            })();
+            console.log('Matomo page view tracked: <?php echo esc_js( get_the_title() ); ?>');
         </script>
-        <noscript><p><img src="<?php echo esc_url( $this->tracker_url ); ?>/matomo.php?idsite=<?php echo esc_attr( $this->site_id ); ?>&rec=1" style="border:0;" alt="" /></p></noscript>
-        <!-- End Matomo -->
         <?php
     }
 
     public function track_membership_signup( $user_id, $order ) {
+        if ( ! $this->tracker ) {
+            return;
+        }
         $level = pmpro_getLevel( $order->membership_id );
         $price = $order->total;
+        $this->tracker->doTrackEvent( 'Membership', 'Signup', $level->name, $price );
+        $this->tracker->doTrackGoal( 1, $price ); // Assuming Goal ID 1
         ?>
         <script type="text/javascript">
-            var _paq = window._paq || [];
-            _paq.push(['trackEvent', 'Membership', 'Signup', '<?php echo esc_js( $level->name ); ?>', <?php echo esc_js( $price ); ?>]);
-            _paq.push(['trackGoal', 1, <?php echo esc_js( $price ); ?>]); // Assuming Goal ID 1 for signups
+            console.log('Matomo event tracked: Membership Signup - <?php echo esc_js( $level->name ); ?> - <?php echo esc_js( $price ); ?>');
         </script>
         <?php
     }
 
     public function track_level_change( $level_id, $user_id, $cancel_level ) {
+        if ( ! $this->tracker ) {
+            return;
+        }
         $level = pmpro_getLevel( $level_id );
         $level_name = $level ? $level->name : 'None (Cancelled)';
+        $this->tracker->doTrackEvent( 'Membership', 'Level Change', $level_name );
         ?>
         <script type="text/javascript">
-            var _paq = window._paq || [];
-            _paq.push(['trackEvent', 'Membership', 'Level Change', '<?php echo esc_js( $level_name ); ?>']);
+            console.log('Matomo event tracked: Membership Level Change - <?php echo esc_js( $level_name ); ?>');
         </script>
         <?php
+    }
+
+    // Getter methods for admin display
+    public function get_site_id() {
+        return $this->site_id;
+    }
+
+    public function get_tracker_url() {
+        return $this->tracker_url;
     }
 }
