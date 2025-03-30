@@ -25,15 +25,15 @@ class PMPro_Matomo_Tracking {
                 $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
             }
 
-            // Fallback to getOption('matomo_url')
+            // Fallback to getOption('URL')
             if ( empty( $this->tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
-                $this->tracker_url = rtrim( $wp_piwik->getOption( 'matomo_url' ), '/' );
+                $this->tracker_url = rtrim( $wp_piwik->getOption( 'URL' ), '/' );
             }
 
             // Fallback to global settings
             if ( empty( $this->tracker_url ) ) {
                 $global_settings = get_option( 'wp_piwik_global_settings', [] );
-                $this->tracker_url = isset( $global_settings['matomo_url'] ) ? rtrim( $global_settings['matomo_url'], '/' ) : (isset( $global_settings['piwik_path'] ) ? rtrim( $global_settings['piwik_path'], '/' ) : '');
+                $this->tracker_url = isset( $global_settings['URL'] ) ? rtrim( $global_settings['URL'], '/' ) : (isset( $global_settings['piwik_path'] ) ? rtrim( $global_settings['piwik_path'], '/' ) : '');
             }
         }
 
