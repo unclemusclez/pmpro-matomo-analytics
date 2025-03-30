@@ -24,7 +24,7 @@ function pmpro_matomo_settings_page() {
         <h1><?php esc_html_e( 'Paid Memberships Pro - Matomo Settings', 'pmpro-matomo' ); ?></h1>
         <p><?php esc_html_e( 'This plugin uses the Matomo PHP Tracker SDK with settings from WP-Piwik.', 'pmpro-matomo' ); ?></p>
         <ul>
-            <li><a href="<?php echo esc_url( admin_url( 'options-general.php?page=wp-piwik' ) ); ?>"><?php esc_html_e( 'Configure WP-Piwik', 'pmpro-matomo' ); ?></a></li>
+            <li><a href="<?php echo esc_url( admin_url( 'options-general.php?page=wp-piwik%2Fclasses%2FWP_Piwik.php' ) ); ?>"><?php esc_html_e( 'Configure WP-Piwik', 'pmpro-matomo' ); ?></a></li>
         </ul>
         <h2><?php esc_html_e( 'Current Matomo Configuration', 'pmpro-matomo' ); ?></h2>
         <table class="form-table">
