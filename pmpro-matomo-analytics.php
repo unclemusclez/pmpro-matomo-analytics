@@ -55,7 +55,7 @@ function pmpro_matomo_requirements_check() {
 add_action( 'admin_notices', 'pmpro_matomo_requirements_check' );
 
 /**
- * Initialize tracking if PMPro and Matomo are active, delayed to after plugins_loaded
+ * Initialize tracking if PMPro and Matomo are active
  */
 function pmpro_matomo_init() {
     if ( function_exists( 'pmpro_getMembershipLevelForUser' ) && ( class_exists( 'WP_Piwik' ) || defined( 'MATOMO_ANALYTICS_FILE' ) ) ) {
@@ -65,4 +65,5 @@ function pmpro_matomo_init() {
         new PMPro_Matomo_Tracking();
     }
 }
-add_action( 'plugins_loaded', 'pmpro_matomo_init', 20 ); // Higher priority to ensure WP-Piwik loads
+// Use init for AJAX compatibility, higher priority to ensure WP-Piwik loads
+add_action( 'init', 'pmpro_matomo_init', 20 );
