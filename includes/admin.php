@@ -64,7 +64,7 @@ function pmpro_matomo_settings_page() {
         <p><?php esc_html_e( 'This plugin uses settings from "Connect Matomo" or "Matomo Analytics". Please configure Matomo in their respective settings pages:', 'pmpro-matomo' ); ?></p>
         <ul>
             <?php if ( $has_connect_matomo ) : ?>
-                <li><a href="<?php echo esc_url( admin_url( 'options-general.php?page=wp-piwik' ) ); ?>"><?php esc_html_e( 'Configure Connect Matomo', 'pmpro-matomo' ); ?></a></li>
+                <li><a href="<?php echo esc_url( admin_url( 'options-general.php?page=wp-piwik%2Fclasses%2FWP_Piwik.php' ) ); ?>"><?php esc_html_e( 'Configure Connect Matomo', 'pmpro-matomo' ); ?></a></li>
             <?php endif; ?>
             <?php if ( $has_matomo_analytics ) : ?>
                 <li><a href="<?php echo esc_url( admin_url( 'admin.php?page=matomo-analytics' ) ); ?>"><?php esc_html_e( 'Configure Matomo Analytics', 'pmpro-matomo' ); ?></a></li>
