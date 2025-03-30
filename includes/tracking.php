@@ -14,7 +14,9 @@ class PMPro_Matomo_Tracking {
             
             if ( method_exists( $wp_piwik, 'getOption' ) ) {
                 $this->site_id = $wp_piwik->getOption( 'site_id' );
-                $this->is_enabled = $wp_piwik->getOption( 'add_tracking_code' ) !== false ? true : false; // Default to true if not explicitly disabled
+                // Safely check add_tracking_code, default to true if unset
+                $add_tracking_code = $wp_piwik->getOption( 'add_tracking_code' );
+                $this->is_enabled = $add_tracking_code !== false ? true : false;
             }
             if ( method_exists( $wp_piwik, 'getMatomoUrl' ) ) {
                 $this->tracker_url = rtrim( $wp_piwik->getMatomoUrl(), '/' );
@@ -22,9 +24,9 @@ class PMPro_Matomo_Tracking {
                 $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
             }
 
-            // Fallback to internal settings if URL methods fail
-            if ( empty( $this->tracker_url ) && property_exists( $wp_piwik, 'settings' ) && method_exists( $wp_piwik->settings, 'getGlobalOption' ) ) {
-                $this->tracker_url = rtrim( $wp_piwik->settings->getGlobalOption( 'piwik_url' ), '/' );
+            // Fallback to getOption('piwik_url') if URL methods fail
+            if ( empty( $this->tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
+                $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ), '/' );
             }
 
             // Fallback to options if still empty

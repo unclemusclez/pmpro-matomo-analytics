@@ -35,9 +35,9 @@ function pmpro_matomo_settings_page() {
             $tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
         }
 
-        // Fallback to internal settings if URL methods fail
-        if ( empty( $tracker_url ) && property_exists( $wp_piwik, 'settings' ) && method_exists( $wp_piwik->settings, 'getGlobalOption' ) ) {
-            $tracker_url = rtrim( $wp_piwik->settings->getGlobalOption( 'piwik_url' ), '/' );
+        // Fallback to getOption('piwik_url') if URL methods fail
+        if ( empty( $tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
+            $tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ), '/' );
         }
 
         // Fallback to options if still empty
