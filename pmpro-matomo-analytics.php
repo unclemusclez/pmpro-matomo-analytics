@@ -35,8 +35,8 @@ function pmpro_matomo_requirements_check() {
         return;
     }
 
-    $has_connect_matomo = class_exists( 'WP_Piwik' ); // Connect Matomo
-    $has_matomo_analytics = defined( 'MATOMO_ANALYTICS_FILE' ); // Matomo Analytics
+    $has_connect_matomo = class_exists( 'WP_Piwik' );
+    $has_matomo_analytics = defined( 'MATOMO_ANALYTICS_FILE' );
 
     if ( ! $has_connect_matomo && ! $has_matomo_analytics ) {
         printf(
