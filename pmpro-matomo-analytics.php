@@ -65,5 +65,4 @@ function pmpro_matomo_init() {
         new PMPro_Matomo_Tracking();
     }
 }
-// Use init for AJAX compatibility, higher priority to ensure WP-Piwik loads
 add_action( 'init', 'pmpro_matomo_init', 20 );

@@ -20,10 +20,10 @@ function pmpro_matomo_settings_page() {
     $site_id = '';
     $tracker_url = '';
 
-    if ( $has_connect_matomo && isset( $GLOBALS['wp-piwik'] ) && method_exists( $GLOBALS['wp-piwik'], 'getOption' ) ) {
+    if ( $has_connect_matomo && isset( $GLOBALS['wp-piwik'] ) && method_exists( $GLOBALS['wp-piwik'], 'getOption' ) && method_exists( $GLOBALS['wp-piwik'], 'getPiwikUrl' ) ) {
         $wp_piwik = $GLOBALS['wp-piwik'];
         $site_id = $wp_piwik->getOption( 'site_id' );
-        $tracker_url = $wp_piwik->getOption( 'piwik_path' );
+        $tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
     } elseif ( $has_connect_matomo ) {
         $global_settings = get_option( 'wp_piwik_global_settings', [] );
         $site_settings = get_option( 'wp_piwik_settings', [] );

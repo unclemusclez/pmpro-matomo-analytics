@@ -7,14 +7,12 @@ class PMPro_Matomo_Tracking {
     public function __construct() {
         // Check for Connect Matomo (WP-Piwik) settings first
         if ( class_exists( 'WP_Piwik' ) ) {
-            // Use WP_Piwik instance if available
-            if ( isset( $GLOBALS['wp-piwik'] ) && method_exists( $GLOBALS['wp-piwik'], 'getOption' ) ) {
+            if ( isset( $GLOBALS['wp-piwik'] ) && method_exists( $GLOBALS['wp-piwik'], 'getOption' ) && method_exists( $GLOBALS['wp-piwik'], 'getPiwikUrl' ) ) {
                 $wp_piwik = $GLOBALS['wp-piwik'];
                 $this->site_id = $wp_piwik->getOption( 'site_id' );
-                $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_path' ), '/' );
+                $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
                 $this->is_enabled = $wp_piwik->getOption( 'add_tracking_code' );
             } else {
-                // Fallback to options if instance isn’t ready
                 $global_settings = get_option( 'wp_piwik_global_settings', [] );
                 $site_settings = get_option( 'wp_piwik_settings', [] );
                 $this->site_id = isset( $site_settings['site_id'] ) ? $site_settings['site_id'] : (isset( $global_settings['default_site'] ) ? $global_settings['default_site'] : '');
