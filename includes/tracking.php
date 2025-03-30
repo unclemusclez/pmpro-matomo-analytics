@@ -31,9 +31,9 @@ class PMPro_Matomo_Tracking {
             }
 
             // Fallback to getOption('piwik_url')
-            if ( empty( $this->tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
-                $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ) ?: '', '/' );
-            }
+            // if ( empty( $this->tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
+            //     $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ) ?: '', '/' );
+            // }
 
             // Fallback to global settings
             if ( empty( $this->tracker_url ) ) {
