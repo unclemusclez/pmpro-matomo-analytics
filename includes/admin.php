@@ -29,7 +29,9 @@ function pmpro_matomo_settings_page() {
         if ( method_exists( $wp_piwik, 'getOption' ) ) {
             $site_id = $wp_piwik->getOption( 'site_id' );
         }
-        if ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
+        if ( method_exists( $wp_piwik, 'getMatomoUrl' ) ) {
+            $tracker_url = rtrim( $wp_piwik->getMatomoUrl(), '/' );
+        } elseif ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
             $tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
         }
 

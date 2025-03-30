@@ -14,10 +14,12 @@ class PMPro_Matomo_Tracking {
             
             if ( method_exists( $wp_piwik, 'getOption' ) ) {
                 $this->site_id = $wp_piwik->getOption( 'site_id' );
-                $this->is_enabled = $wp_piwik->getOption( 'add_tracking_code' ) ? true : false;
+                $this->is_enabled = $wp_piwik->getOption( 'add_tracking_code' ) !== false ? true : false; // Default to true if not explicitly disabled
             }
-            if ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
-                $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
+            if ( method_exists( $wp_piwik, 'getMatomoUrl' ) ) {
+                $this->tracker_url = rtrim( $wp_piwik->getMatomoUrl(), '/' );
+            } elseif ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
+                $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' ); // Fallback to deprecated method
             }
 
             // Fallback to options only if necessary
