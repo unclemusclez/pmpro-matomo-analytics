@@ -7,12 +7,13 @@ class PMPro_Matomo_Tracking {
     public function __construct() {
         // Check for Connect Matomo (WP-Piwik) settings first
         if ( class_exists( 'WP_Piwik' ) ) {
-            if ( isset( $GLOBALS['wp-piwik'] ) && method_exists( $GLOBALS['wp-piwik'], 'getOption' ) && method_exists( $GLOBALS['wp-piwik'], 'getPiwikUrl' ) ) {
+            if ( isset( $GLOBALS['wp-piwik'] ) && method_exists( $GLOBALS['wp-piwik'], 'getOption' ) ) {
                 $wp_piwik = $GLOBALS['wp-piwik'];
                 $this->site_id = $wp_piwik->getOption( 'site_id' );
-                $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
+                $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_path' ), '/' );
                 $this->is_enabled = $wp_piwik->getOption( 'add_tracking_code' );
             } else {
+                // Fallback to options if instance isn’t ready
                 $global_settings = get_option( 'wp_piwik_global_settings', [] );
                 $site_settings = get_option( 'wp_piwik_settings', [] );
                 $this->site_id = isset( $site_settings['site_id'] ) ? $site_settings['site_id'] : (isset( $global_settings['default_site'] ) ? $global_settings['default_site'] : '');
@@ -20,8 +21,8 @@ class PMPro_Matomo_Tracking {
                 $this->is_enabled = ! empty( $site_settings['add_tracking_code'] ) ? $site_settings['add_tracking_code'] : (! empty( $global_settings['add_tracking_code'] ) ? $global_settings['add_tracking_code'] : false);
             }
 
-            // Debug logging
-            error_log( 'PMPro Matomo: WP-Piwik settings - Site ID: ' . $this->site_id . ', Tracker URL: ' . $this->tracker_url . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
+            // Debug logging to confirm settings retrieval
+            error_log( 'PMPro Matomo: WP-Piwik settings - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set') . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
             error_log( 'PMPro Matomo: Full WP-Piwik global settings dump: ' . print_r( get_option( 'wp_piwik_global_settings', [] ), true ) );
             error_log( 'PMPro Matomo: Full WP-Piwik site settings dump: ' . print_r( get_option( 'wp_piwik_settings', [] ), true ) );
         }
