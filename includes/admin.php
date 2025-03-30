@@ -35,13 +35,20 @@ function pmpro_matomo_settings_page() {
             $tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
         }
 
-        // Fallback to options only if necessary
-        if ( empty( $site_id ) || empty( $tracker_url ) ) {
+        // Fallback to internal settings if URL methods fail
+        if ( empty( $tracker_url ) && property_exists( $wp_piwik, 'settings' ) && method_exists( $wp_piwik->settings, 'getGlobalOption' ) ) {
+            $tracker_url = rtrim( $wp_piwik->settings->getGlobalOption( 'piwik_url' ), '/' );
+        }
+
+        // Fallback to options if still empty
+        if ( empty( $tracker_url ) ) {
             $global_settings = get_option( 'wp_piwik_global_settings', [] );
             $site_settings = get_option( 'wp_piwik_settings', [] );
-            $site_id = isset( $site_settings['site_id'] ) ? $site_settings['site_id'] : (isset( $global_settings['default_site'] ) ? $global_settings['default_site'] : $site_id);
             $tracker_url = isset( $site_settings['piwik_path'] ) ? rtrim( $site_settings['piwik_path'], '/' ) : (isset( $global_settings['piwik_path'] ) ? rtrim( $global_settings['piwik_path'], '/' ) : $tracker_url);
         }
+
+        // Debug logging
+        error_log( 'PMPro Matomo Admin: WP-Piwik settings - Site ID: ' . ($site_id ?: 'not set') . ', Tracker URL: ' . ($tracker_url ?: 'not set') );
     } elseif ( $has_matomo_analytics ) {
         $settings = new \WpMatomo\Settings();
         $site_id = \WpMatomo\Site::get_matomo_site_id( get_current_blog_id() );
@@ -50,9 +57,6 @@ function pmpro_matomo_settings_page() {
 
     // Avoid null in rtrim
     $tracker_url = $tracker_url ? rtrim( $tracker_url, '/' ) : '';
-
-    // Debug logging
-    error_log( 'PMPro Matomo Admin: WP-Piwik settings - Site ID: ' . ($site_id ?: 'not set') . ', Tracker URL: ' . ($tracker_url ?: 'not set') );
 
     ?>
     <div class="wrap">
