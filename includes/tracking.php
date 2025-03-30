@@ -23,37 +23,47 @@ class PMPro_Matomo_Tracking {
             }
             $wp_piwik = $GLOBALS['wp-piwik'];
 
-            if (method_exists($wp_piwik, 'getOption')) {
-                if (empty($this->site_id)) {
-                    $this->site_id = $wp_piwik->getOption('site_id') ?: '';
-                }
-                // if (empty($this->tracker_url)) {
-                //     // Use a safe check here, though warning is in WP-Piwik
-                //     $piwik_url = $wp_piwik->getOption('piwik_url');
-                //     $this->tracker_url = $piwik_url ? rtrim($piwik_url, '/') : '';
-                // }
+            // Get Site ID
+            if ( method_exists( $wp_piwik, 'getOption' ) ) {
+                $this->site_id = $wp_piwik->getOption( 'site_id' );
             }
 
-            if (empty($this->tracker_url)) {
-                if (method_exists($wp_piwik, 'getMatomoUrl')) {
-                    $this->tracker_url = rtrim($wp_piwik->getMatomoUrl() ?: '', '/');
-                } elseif (method_exists($wp_piwik, 'getPiwikUrl')) {
-                    $this->tracker_url = rtrim($wp_piwik->getPiwikUrl() ?: '', '/');
-                }
+            // Attempt to retrieve Tracker URL
+            if ( method_exists( $wp_piwik, 'getMatomoUrl' ) ) {
+                $this->tracker_url = rtrim( $wp_piwik->getMatomoUrl() ?: '', '/' );
+            } elseif ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
+                $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl() ?: '', '/' );
             }
-        }
 
-        // Validate and initialize MatomoTracker
-        if ($this->site_id && $this->tracker_url && filter_var($this->tracker_url, FILTER_VALIDATE_URL)) {
-            $this->is_enabled = true;
-            if (file_exists(PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php')) {
-                require_once PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php';
-                MatomoTracker::$URL = $this->tracker_url;
-                $this->tracker = new MatomoTracker($this->site_id);
-                $this->register_hooks();
-            } else {
-                $this->is_enabled = false;
-                error_log('PMPro Matomo: MatomoTracker.php not found at ' . PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php');
+            // Fallback to getOption('piwik_url')
+            // if ( empty( $this->tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
+            //     $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ) ?: '', '/' );
+            // }
+
+            // Fallback to global settings
+            if ( empty( $this->tracker_url ) ) {
+                $global_settings = get_option( 'wp_piwik_global_settings', [] );
+                $this->tracker_url = isset( $global_settings['piwik_url'] ) ? rtrim( $global_settings['piwik_url'], '/' ) : '';
+            }
+
+            // Debug WP-Piwik internals
+            if ( empty( $this->tracker_url ) && $this->site_id ) {
+                $this->tracker_url = 'https://analytics.saltrivercanyon.com'; // Temporary fallback
+                error_log( 'PMPro Matomo: Tracker URL not found in WP-Piwik settings, using fallback: ' . $this->tracker_url );
+            }
+
+            // Validate URL and initialize MatomoTracker
+            if ( $this->site_id && $this->tracker_url && filter_var( $this->tracker_url, FILTER_VALIDATE_URL ) ) {
+                $this->is_enabled = true;
+                if ( file_exists( PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php' ) ) {
+                    require_once PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php';
+                    MatomoTracker::$URL = $this->tracker_url;
+                    $this->tracker = new MatomoTracker( $this->site_id );
+                    $this->register_hooks();
+                } else {
+                    $this->is_enabled = false;
+                    error_log( 'PMPro Matomo: MatomoTracker.php not found at ' . PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php' );
+                }
             }
         } else {
             error_log('PMPro Matomo: Missing site_id or valid tracker_url - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set'));
