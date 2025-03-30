@@ -15,14 +15,23 @@ class PMPro_Matomo_Tracking {
         $this->tracker_url = !empty($settings['tracker_url']) ? rtrim($settings['tracker_url'], '/') . '/matomo.php' : '';
         $this->site_id = !empty($settings['site_id']) ? $settings['site_id'] : '';
 
-        // Fallback to WP-Piwik for site_id only if needed
-        if (empty($this->site_id) && class_exists('WP_Piwik')) {
+        // Fallback to WP-Piwik if settings are incomplete
+        if ((empty($this->tracker_url) || empty($this->site_id)) && class_exists('WP_Piwik')) {
             if (!isset($GLOBALS['wp-piwik'])) {
                 $GLOBALS['wp-piwik'] = new WP_Piwik();
             }
             $wp_piwik = $GLOBALS['wp-piwik'];
-            if (method_exists($wp_piwik, 'getOption')) {
+
+            if (empty($this->site_id) && method_exists($wp_piwik, 'getOption')) {
                 $this->site_id = $wp_piwik->getOption('site_id') ?: '';
+            }
+
+            if (empty($this->tracker_url)) {
+                if (method_exists($wp_piwik, 'getMatomoUrl')) {
+                    $this->tracker_url = rtrim($wp_piwik->getMatomoUrl() ?: '', '/') . '/matomo.php';
+                } elseif (method_exists($wp_piwik, 'getPiwikUrl')) {
+                    $this->tracker_url = rtrim($wp_piwik->getPiwikUrl() ?: '', '/') . '/matomo.php';
+                }
             }
         }
 
