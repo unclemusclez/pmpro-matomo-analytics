@@ -15,7 +15,6 @@ function pmpro_matomo_settings_page() {
         wp_die( __( 'You do not have sufficient permissions to access this page.', 'pmpro-matomo' ) );
     }
 
-    // Initialize tracking to get settings
     $tracking = new PMPro_Matomo_Tracking();
     $site_id = $tracking->get_site_id();
     $tracker_url = $tracking->get_tracker_url();
@@ -25,7 +24,7 @@ function pmpro_matomo_settings_page() {
         <h1><?php esc_html_e( 'Paid Memberships Pro - Matomo Settings', 'pmpro-matomo' ); ?></h1>
         <p><?php esc_html_e( 'This plugin uses the Matomo PHP Tracker SDK with settings from WP-Piwik.', 'pmpro-matomo' ); ?></p>
         <ul>
-            <li><a href="<?php echo esc_url( admin_url( 'options-general.php?page=wp-piwik' ) ); ?>"><?'. esc_html__( 'Configure WP-Piwik', 'pmpro-matomo' ); ?></a></li>
+            <li><a href="<?php echo esc_url( admin_url( 'options-general.php?page=wp-piwik' ) ); ?>"><?php esc_html_e( 'Configure WP-Piwik', 'pmpro-matomo' ); ?></a></li>
         </ul>
         <h2><?php esc_html_e( 'Current Matomo Configuration', 'pmpro-matomo' ); ?></h2>
         <table class="form-table">

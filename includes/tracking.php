@@ -6,6 +6,11 @@ class PMPro_Matomo_Tracking {
     private $tracker;
 
     public function __construct() {
+        // Initialize defaults
+        $this->site_id = '';
+        $this->tracker_url = '';
+        $this->is_enabled = false;
+
         // Check for WP-Piwik to get settings
         if ( class_exists( 'WP_Piwik' ) ) {
             if ( ! isset( $GLOBALS['wp-piwik'] ) ) {
@@ -18,33 +23,34 @@ class PMPro_Matomo_Tracking {
                 $this->site_id = $wp_piwik->getOption( 'site_id' );
             }
 
-            // Try to get Tracker URL from WP-Piwik
+            // Attempt to retrieve Tracker URL from WP-Piwik methods
             if ( method_exists( $wp_piwik, 'getMatomoUrl' ) ) {
                 $this->tracker_url = rtrim( $wp_piwik->getMatomoUrl(), '/' );
             } elseif ( method_exists( $wp_piwik, 'getPiwikUrl' ) ) {
                 $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
             }
 
-            // Fallback to getOption('URL')
+            // Fallback to getOption('piwik_url')
             if ( empty( $this->tracker_url ) && method_exists( $wp_piwik, 'getOption' ) ) {
-                $this->tracker_url = rtrim( $wp_piwik->getOption( 'URL' ), '/' );
+                $this->tracker_url = rtrim( $wp_piwik->getOption( 'piwik_url' ), '/' );
             }
 
             // Fallback to global settings
             if ( empty( $this->tracker_url ) ) {
                 $global_settings = get_option( 'wp_piwik_global_settings', [] );
-                $this->tracker_url = isset( $global_settings['URL'] ) ? rtrim( $global_settings['URL'], '/' ) : (isset( $global_settings['piwik_path'] ) ? rtrim( $global_settings['piwik_path'], '/' ) : '');
+                $this->tracker_url = isset( $global_settings['piwik_url'] ) ? rtrim( $global_settings['piwik_url'], '/' ) : '';
             }
-        }
 
-        // Validate and enable
-        $this->is_enabled = false;
-        if ( $this->site_id && $this->tracker_url && file_exists( $this->tracker_url . '/matomo.php' ) ) {
-            $this->is_enabled = true;
-            require_once PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php';
-            MatomoTracker::$URL = $this->tracker_url;
-            $this->tracker = new MatomoTracker( $this->site_id );
-            $this->register_hooks();
+            // Validate URL and initialize MatomoTracker
+            if ( $this->site_id && $this->tracker_url && filter_var( $this->tracker_url, FILTER_VALIDATE_URL ) ) {
+                $this->is_enabled = true;
+                require_once PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php';
+                MatomoTracker::$URL = $this->tracker_url;
+                $this->tracker = new MatomoTracker( $this->site_id );
+                $this->register_hooks();
+            } else {
+                $this->is_enabled = false;
+            }
         }
 
         // Debug logging
@@ -99,7 +105,6 @@ class PMPro_Matomo_Tracking {
         <?php
     }
 
-    // Getter methods for admin display
     public function get_site_id() {
         return $this->site_id;
     }
