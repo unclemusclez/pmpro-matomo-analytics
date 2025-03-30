@@ -20,8 +20,8 @@ class PMPro_Matomo_Tracking {
                 $this->tracker_url = rtrim( $wp_piwik->getPiwikUrl(), '/' );
             }
 
-            // Fallback to options if direct methods fail
-            if ( empty( $this->site_id ) || empty( $this->tracker_url ) || ! $this->is_enabled ) {
+            // Fallback to options only if necessary
+            if ( empty( $this->site_id ) || empty( $this->tracker_url ) ) {
                 $global_settings = get_option( 'wp_piwik_global_settings', [] );
                 $site_settings = get_option( 'wp_piwik_settings', [] );
                 $this->site_id = isset( $site_settings['site_id'] ) ? $site_settings['site_id'] : (isset( $global_settings['default_site'] ) ? $global_settings['default_site'] : $this->site_id);
@@ -30,9 +30,7 @@ class PMPro_Matomo_Tracking {
             }
 
             // Debug logging
-            error_log( 'PMPro Matomo: WP-Piwik settings - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set') . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
-            error_log( 'PMPro Matomo: Full WP-Piwik global settings dump: ' . print_r( get_option( 'wp_piwik_global_settings', [] ), true ) );
-            error_log( 'PMPro Matomo: Full WP-Piwik site settings dump: ' . print_r( get_option( 'wp_piwik_settings', [] ), true ) );
+            error_log( 'PMPro Matomo Tracking: WP-Piwik settings - Site ID: ' . ($this->site_id ?: 'not set') . ', Tracker URL: ' . ($this->tracker_url ?: 'not set') . ', Enabled: ' . ($this->is_enabled ? 'yes' : 'no') );
         }
         // Fallback to Matomo Analytics settings
         elseif ( defined( 'MATOMO_ANALYTICS_FILE' ) ) {
@@ -40,10 +38,10 @@ class PMPro_Matomo_Tracking {
             $this->site_id = \WpMatomo\Site::get_matomo_site_id( get_current_blog_id() );
             $this->tracker_url = $settings->get_tracker_api_url_in_matomo_dir();
             $this->is_enabled = $settings->is_tracking_enabled();
-            error_log( 'PMPro Matomo: Matomo Analytics - Site ID: ' . $this->site_id . ', Tracker URL: ' . $this->tracker_url );
+            error_log( 'PMPro Matomo Tracking: Matomo Analytics - Site ID: ' . $this->site_id . ', Tracker URL: ' . $this->tracker_url );
         } else {
             $this->is_enabled = false;
-            error_log( 'PMPro Matomo: No Matomo plugin detected.');
+            error_log( 'PMPro Matomo Tracking: No Matomo plugin detected.');
         }
 
         if ( $this->is_enabled && $this->site_id && $this->tracker_url ) {
