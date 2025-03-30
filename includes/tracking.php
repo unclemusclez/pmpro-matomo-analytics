@@ -39,24 +39,26 @@ class PMPro_Matomo_Tracking {
             if ( empty( $this->tracker_url ) ) {
                 $global_settings = get_option( 'wp_piwik_global_settings', [] );
                 $this->tracker_url = isset( $global_settings['piwik_url'] ) ? rtrim( $global_settings['piwik_url'], '/' ) : '';
-                if ( empty( $this->tracker_url ) ) {
-                    $this->tracker_url = isset( $global_settings['piwik_path'] ) ? rtrim( $global_settings['piwik_path'], '/' ) : '';
-                }
             }
 
             // Debug WP-Piwik internals
             if ( empty( $this->tracker_url ) && $this->site_id ) {
-                $this->tracker_url = 'https://analytics.saltrivercanyon.com'; // Temporary fallback based on tracking code
+                $this->tracker_url = 'https://analytics.saltrivercanyon.com'; // Temporary fallback
                 error_log( 'PMPro Matomo: Tracker URL not found in WP-Piwik settings, using fallback: ' . $this->tracker_url );
             }
 
             // Validate URL and initialize MatomoTracker
             if ( $this->site_id && $this->tracker_url && filter_var( $this->tracker_url, FILTER_VALIDATE_URL ) ) {
                 $this->is_enabled = true;
-                require_once PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php';
-                MatomoTracker::$URL = $this->tracker_url;
-                $this->tracker = new MatomoTracker( $this->site_id );
-                $this->register_hooks();
+                if ( file_exists( PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php' ) ) {
+                    require_once PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php';
+                    MatomoTracker::$URL = $this->tracker_url;
+                    $this->tracker = new MatomoTracker( $this->site_id );
+                    $this->register_hooks();
+                } else {
+                    $this->is_enabled = false;
+                    error_log( 'PMPro Matomo: MatomoTracker.php not found at ' . PMPRO_MATOMO_DIR . '/includes/MatomoTracker.php' );
+                }
             }
         }
 
