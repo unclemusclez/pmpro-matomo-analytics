@@ -3,9 +3,9 @@
  * Plugin Name: Paid Memberships Pro - Matomo Integration
  * Plugin URI: https://github.com/yourusername/pmpro-matomo-analytics
  * Description: Integrates Matomo tracking with Paid Memberships Pro using the PHP Tracker SDK.
- * Version: 1.0
- * Author: Your Name
- * Author URI: https://yourwebsite.com
+ * Version: 0.1.0
+ * Author: Devin J. Dawson
+ * Author URI: https://waterpistol.co
  * Text Domain: pmpro-matomo
  * Domain Path: /languages
  * License: GPL v3 or later
